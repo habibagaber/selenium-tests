@@ -17,6 +17,7 @@ class InventoryPage:
     ADD_TO_CART_BUTTONS = (By.CSS_SELECTOR, "button[data-test^='add-to-cart']")
     REMOVE_BUTTONS = (By.CSS_SELECTOR, "button[data-test^='remove']")
     PRODUCT_NAMES = (By.CLASS_NAME, "inventory_item_name")
+    PRODUCT_PRICES = (By.CLASS_NAME, "inventory_item_price")
 
     def __init__(self, driver):
         self.driver = driver
@@ -41,6 +42,15 @@ class InventoryPage:
         """Add a specific item to the cart by its position (0 = first)."""
         buttons = self.driver.find_elements(*self.ADD_TO_CART_BUTTONS)
         buttons[index].click()
+
+    def add_all_items_to_cart(self):
+        """Add every single product on the page to the cart."""
+        buttons = self.wait.until(
+            EC.presence_of_all_elements_located(self.ADD_TO_CART_BUTTONS)
+        )
+        for button in buttons:
+            button.click()
+        return len(buttons)
 
     def remove_first_item_from_cart(self):
         """Click the first 'Remove' button (after an item has been added)."""
@@ -68,3 +78,16 @@ class InventoryPage:
         """Return a list of all product names shown on the page."""
         items = self.driver.find_elements(*self.PRODUCT_NAMES)
         return [item.text for item in items]
+
+    def get_product_prices(self):
+        """Return a list of all product prices as floats e.g. [9.99, 29.99]."""
+        prices = self.driver.find_elements(*self.PRODUCT_PRICES)
+        return [float(p.text.replace("$", "")) for p in prices]
+
+    def get_first_product_name(self):
+        """Return the name of the first product on the page."""
+        return self.get_product_names()[0]
+
+    def get_first_product_price(self):
+        """Return the price of the first product as a float."""
+        return self.get_product_prices()[0]

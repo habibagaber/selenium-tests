@@ -11,6 +11,7 @@ class CartPage:
     CONTINUE_SHOPPING_BUTTON = (By.ID, "continue-shopping")
     REMOVE_BUTTONS = (By.CSS_SELECTOR, "button[data-test^='remove']")
     ITEM_NAMES = (By.CLASS_NAME, "inventory_item_name")
+    ITEM_PRICES = (By.CLASS_NAME, "inventory_item_price")  # ✅ new
 
     def __init__(self, driver):
         self.driver = driver
@@ -26,11 +27,15 @@ class CartPage:
         return len(self.get_cart_items())
 
     def get_item_names(self):
-        # ✅ Fix: wait until we are ON the cart page before reading names
         self.wait.until(EC.url_contains("cart"))
         self.wait.until(EC.presence_of_element_located(self.ITEM_NAMES))
         names = self.driver.find_elements(*self.ITEM_NAMES)
         return [n.text for n in names]
+
+    def get_item_prices(self):  # ✅ new
+        """Return list of item prices as floats e.g. [9.99]."""
+        prices = self.driver.find_elements(*self.ITEM_PRICES)
+        return [float(p.text.replace("$", "")) for p in prices]
 
     def remove_item(self, index=0):
         buttons = self.driver.find_elements(*self.REMOVE_BUTTONS)
@@ -49,12 +54,11 @@ class CheckoutPage:
     POSTAL_CODE_INPUT = (By.ID, "postal-code")
     CONTINUE_BUTTON = (By.ID, "continue")
     CANCEL_BUTTON = (By.ID, "cancel")
-    # ✅ Fix: broader locator to catch the error regardless of timing
     ERROR_MESSAGE = (By.XPATH, "//*[@data-test='error']")
 
     def __init__(self, driver):
         self.driver = driver
-        self.wait = WebDriverWait(driver, 20)  # ✅ increased to 20 seconds
+        self.wait = WebDriverWait(driver, 20)
 
     def enter_info(self, first_name, last_name, postal_code):
         self.wait.until(
@@ -66,9 +70,11 @@ class CheckoutPage:
     def click_continue(self):
         self.driver.find_element(*self.CONTINUE_BUTTON).click()
 
+    def click_cancel(self):  # ✅ new
+        """Click Cancel to go back to the cart."""
+        self.wait.until(EC.element_to_be_clickable(self.CANCEL_BUTTON)).click()
+
     def get_error_message(self):
-        # ✅ Fix: wait for URL to stay on step-one (error keeps us here)
-        # then wait for the error element to appear
         self.wait.until(EC.url_contains("checkout-step-one"))
         error = self.wait.until(
             EC.visibility_of_element_located(self.ERROR_MESSAGE)
@@ -90,13 +96,15 @@ class CheckoutOverviewPage:
         self.wait = WebDriverWait(driver, 15)
 
     def get_item_names(self):
-        # ✅ Fix: wait for items to be present before reading them
         self.wait.until(EC.presence_of_element_located(self.ITEM_NAMES))
         items = self.driver.find_elements(*self.ITEM_NAMES)
         return [i.text for i in items]
 
     def get_total(self):
-        return self.driver.find_element(*self.TOTAL_LABEL).text
+        """Return the total price string e.g. 'Total: $32.39'."""
+        return self.wait.until(
+            EC.visibility_of_element_located(self.TOTAL_LABEL)
+        ).text
 
     def finish_order(self):
         self.wait.until(EC.url_contains("checkout-step-two"))
@@ -122,4 +130,7 @@ class CheckoutCompletePage:
         return header.text
 
     def go_back_home(self):
-        self.driver.find_element(*self.BACK_HOME_BUTTON).click()
+        self.wait.until(
+            EC.element_to_be_clickable(self.BACK_HOME_BUTTON)
+        ).click()
+        self.wait.until(EC.url_contains("inventory"))

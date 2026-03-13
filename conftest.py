@@ -8,7 +8,7 @@ def driver():
     options = webdriver.ChromeOptions()
 
     # ✅ Fix 1: Keep browser open after test finishes
-    options.add_experimental_option("detach", True)
+    #options.add_experimental_option("detach", True)
 
     # ✅ Fix 2: Disable the "Change your password" data breach popup
     options.add_argument("--disable-save-password-bubble")
